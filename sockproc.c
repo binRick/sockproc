@@ -198,10 +198,12 @@ int create_child(int fd, const char* cmd, char* const argv[], char* const env[],
         close(stdout_pipe[PIPE_WRITE]);
         close(stderr_pipe[PIPE_WRITE]);
 
+        fprintf(stderr, "Child Process %d Ready> \n", getpid());
         /* write input to child, if provided */
         if (fd_in != -1) {
             count = in_byte_count;
             while (count > 0) {
+                fprintf(stderr, "Writing %ld bytes to Child Process %d Stdin..\n", rc, getpid());
                 rc = read(fd_in, input_buf, sizeof(input_buf));
                 if (rc == 0) {
                     break;
@@ -211,7 +213,6 @@ int create_child(int fd, const char* cmd, char* const argv[], char* const env[],
             }
         }
         close(stdin_pipe[PIPE_WRITE]);
-
         /* read output */
         out_buffers = read_pipe(stdout_pipe[PIPE_READ]);
 
@@ -220,6 +221,7 @@ int create_child(int fd, const char* cmd, char* const argv[], char* const env[],
 
         /* wait and get the exit code */
         waitpid(child_pid, &child_exit_code, 0);
+        fprintf(stderr, "Child Process %d exited %d\n",  getpid(), child_exit_code);
 
         memset(buf, 0, sizeof(buf));
         snprintf(buf, sizeof(buf), "status:%d\r\n", child_exit_code);
@@ -227,6 +229,7 @@ int create_child(int fd, const char* cmd, char* const argv[], char* const env[],
 
         memset(buf, 0, sizeof(buf));
         snprintf(buf, sizeof(buf), "%zu\r\n", total_bytes(out_buffers));
+        fprintf(stderr, "Child Process %d Processed %ld Stdout Bytes\n",  getpid(),  total_bytes(out_buffers));
         write(fd, buf, strlen(buf));
         curr = out_buffers;
         while (curr) {
@@ -236,6 +239,7 @@ int create_child(int fd, const char* cmd, char* const argv[], char* const env[],
 
         memset(buf, 0, sizeof(buf));
         snprintf(buf, sizeof(buf), "%zu\r\n", total_bytes(err_buffers));
+        fprintf(stderr, "Child Process %d Processed %ld Stderr Bytes\n",  getpid(),  total_bytes(err_buffers));
         write(fd, buf, strlen(buf));
         curr = err_buffers;
         while (curr) {
@@ -262,6 +266,7 @@ int create_child(int fd, const char* cmd, char* const argv[], char* const env[],
         close(stderr_pipe[PIPE_WRITE]);
     }
 
+    fprintf(stderr, "Child Process %d Completed with result %d", getpid(), fork_result);
     return fork_result;
 }
 
